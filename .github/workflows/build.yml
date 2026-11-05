@@ -2,50 +2,68 @@ name: Build Wezt Opto Comp
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            name: Windows
-          - os: macos-latest
-            name: macOS
-          - os: ubuntu-22.04
-            name: Linux
-    runs-on: ${{ matrix.os }}
-    name: ${{ matrix.name }}
-
+  windows:
+    runs-on: windows-2022
+    name: Windows
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev libx11-dev libxcomposite-dev libxcursor-dev \
-            libxext-dev libxinerama-dev libxrandr-dev libxrender-dev libfreetype6-dev \
-            libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev
-
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCOPY_PLUGIN_AFTER_BUILD=OFF
-
       - name: Build
         run: cmake --build build --config Release --parallel
-
       - name: Collect VST3
         shell: bash
         run: |
           mkdir -p out
           find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
           ls -la out
-
-      - name: Upload plugin
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: Wezt-Opto-Comp-${{ matrix.name }}-VST3
+          name: Wezt-Opto-Comp-Windows-VST3
+          path: out
+
+  linux:
+    runs-on: ubuntu-22.04
+    name: Linux
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libxcomposite-dev libxcursor-dev \
+            libxext-dev libxinerama-dev libxrandr-dev libxrender-dev libfreetype6-dev \
+            libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCOPY_PLUGIN_AFTER_BUILD=OFF
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Collect VST3
+        shell: bash
+        run: |
+          mkdir -p out
+          find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wezt-Opto-Comp-Linux-VST3
+          path: out
+
+  macos:
+    runs-on: macos-14
+    name: macOS
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCOPY_PLUGIN_AFTER_BUILD=OFF "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Collect VST3
+        run: |
+          mkdir -p out
+          find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wezt-Opto-Comp-macOS-VST3
           path: out
