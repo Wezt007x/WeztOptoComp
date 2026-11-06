@@ -78,31 +78,3 @@ jobs:
         with:
           name: Wezt-Opto-Comp-Linux-VST3
           path: out
-
-  macos:
-    runs-on: macos-15
-    name: macOS
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCOPY_PLUGIN_AFTER_BUILD=OFF "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
-      - name: Build
-        run: cmake --build build --config Release --parallel
-      - name: Collect VST3
-        run: |
-          mkdir -p out
-          find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
-      - name: Make Mac installer
-        run: |
-          pkgbuild --component "out/Wezt Opto Comp.vst3" \
-            --install-location "/Library/Audio/Plug-Ins/VST3" \
-            --identifier com.wezt.optocomp.vst3 --version 0.1.0 \
-            WeztOptoComp-macOS.pkg
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Wezt-Opto-Comp-macOS-Installer
-          path: WeztOptoComp-macOS.pkg
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Wezt-Opto-Comp-macOS-VST3
-          path: out
