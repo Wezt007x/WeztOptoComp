@@ -20,6 +20,35 @@ jobs:
           mkdir -p out
           find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
           ls -la out
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+      - name: Make Windows installer
+        shell: bash
+        run: |
+          cat > setup.iss <<'EOF'
+          [Setup]
+          AppName=Wezt Opto Comp
+          AppVersion=0.1.0
+          AppPublisher=Wezt
+          DefaultDirName={commoncf64}\VST3
+          DisableDirPage=yes
+          DisableProgramGroupPage=yes
+          PrivilegesRequired=admin
+          ArchitecturesInstallIn64BitMode=x64compatible
+          OutputDir=installer
+          OutputBaseFilename=WeztOptoComp-Windows-Setup
+          Compression=lzma
+          SolidCompression=yes
+          [Files]
+          Source: "out\Wezt Opto Comp.vst3\*"; DestDir: "{commoncf64}\VST3\Wezt Opto Comp.vst3"; Flags: recursesubdirs ignoreversion
+          EOF
+          sed -i 's/^          //' setup.iss
+          "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" setup.iss
+          ls -la installer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wezt-Opto-Comp-Windows-Installer
+          path: installer/WeztOptoComp-Windows-Setup.exe
       - uses: actions/upload-artifact@v4
         with:
           name: Wezt-Opto-Comp-Windows-VST3
@@ -63,6 +92,16 @@ jobs:
         run: |
           mkdir -p out
           find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
+      - name: Make Mac installer
+        run: |
+          pkgbuild --component "out/Wezt Opto Comp.vst3" \
+            --install-location "/Library/Audio/Plug-Ins/VST3" \
+            --identifier com.wezt.optocomp.vst3 --version 0.1.0 \
+            WeztOptoComp-macOS.pkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wezt-Opto-Comp-macOS-Installer
+          path: WeztOptoComp-macOS.pkg
       - uses: actions/upload-artifact@v4
         with:
           name: Wezt-Opto-Comp-macOS-VST3
