@@ -1,4 +1,4 @@
-name: Build Wezt Opto Comp
+name: Build Wezt Plugins
 
 on:
   push:
@@ -25,10 +25,10 @@ jobs:
       - name: Make Windows installer
         shell: bash
         run: |
-          cat > setup.iss <<'EOF'
+          cat > setup.iss <<'ISS'
           [Setup]
-          AppName=Wezt Opto Comp
-          AppVersion=0.1.0
+          AppName=Wezt Plugins
+          AppVersion=0.2.0
           AppPublisher=Wezt
           DefaultDirName={commoncf64}\VST3
           DisableDirPage=yes
@@ -36,22 +36,22 @@ jobs:
           PrivilegesRequired=admin
           ArchitecturesInstallIn64BitMode=x64compatible
           OutputDir=installer
-          OutputBaseFilename=WeztOptoComp-Windows-Setup
+          OutputBaseFilename=WeztPlugins-Windows-Setup
           Compression=lzma
           SolidCompression=yes
           [Files]
-          Source: "out\Wezt Opto Comp.vst3\*"; DestDir: "{commoncf64}\VST3\Wezt Opto Comp.vst3"; Flags: recursesubdirs ignoreversion
-          EOF
+          Source: "out\*"; DestDir: "{commoncf64}\VST3"; Flags: recursesubdirs createallsubdirs ignoreversion
+          ISS
           sed -i 's/^          //' setup.iss
           "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" setup.iss
           ls -la installer
       - uses: actions/upload-artifact@v4
         with:
-          name: Wezt-Opto-Comp-Windows-Installer
-          path: installer/WeztOptoComp-Windows-Setup.exe
+          name: Wezt-Plugins-Windows-Installer
+          path: installer/WeztPlugins-Windows-Setup.exe
       - uses: actions/upload-artifact@v4
         with:
-          name: Wezt-Opto-Comp-Windows-VST3
+          name: Wezt-Plugins-Windows-VST3
           path: out
 
   linux:
@@ -76,5 +76,5 @@ jobs:
           find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
       - uses: actions/upload-artifact@v4
         with:
-          name: Wezt-Opto-Comp-Linux-VST3
+          name: Wezt-Plugins-Linux-VST3
           path: out
