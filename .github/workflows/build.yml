@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+env:
+  TARGETS: "WeztOptoComp WeztVariMu WeztTubeEQ WeztChorus WeztPhaser WeztVacuum"
+
 jobs:
   windows:
     runs-on: windows-2022
@@ -12,14 +15,30 @@ jobs:
       - uses: actions/checkout@v4
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCOPY_PLUGIN_AFTER_BUILD=OFF
-      - name: Build
-        run: cmake --build build --config Release --parallel
-      - name: Collect VST3
+      - name: Build each plugin
         shell: bash
         run: |
-          mkdir -p out
+          set +e +o pipefail
+          mkdir -p out logs
+          OK=0
+          for t in $TARGETS; do
+            echo "=== Building $t ==="
+            cmake --build build --config Release --target ${t}_VST3 --parallel 4 > logs/$t.log 2>&1
+            if [ $? -ne 0 ]; then
+              MSG=$(grep -i "error" logs/$t.log | head -6 | cut -c1-260 | tr -d '\r' | tr '\n' '|' | sed 's/%/%25/g')
+              echo "::error title=$t FAILED::$MSG"
+            else
+              OK=$((OK+1))
+            fi
+          done
           find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
           ls -la out
+          [ $OK -gt 0 ] || exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Windows-build-logs
+          path: logs
       - name: Install Inno Setup
         run: choco install innosetup -y
       - name: Make Windows installer
@@ -67,13 +86,30 @@ jobs:
             libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCOPY_PLUGIN_AFTER_BUILD=OFF
-      - name: Build
-        run: cmake --build build --config Release --parallel
-      - name: Collect VST3
+      - name: Build each plugin
         shell: bash
         run: |
-          mkdir -p out
+          set +e +o pipefail
+          mkdir -p out logs
+          OK=0
+          for t in $TARGETS; do
+            echo "=== Building $t ==="
+            cmake --build build --target ${t}_VST3 --parallel 2 > logs/$t.log 2>&1
+            if [ $? -ne 0 ]; then
+              MSG=$(grep -i "error" logs/$t.log | head -6 | cut -c1-260 | tr -d '\r' | tr '\n' '|' | sed 's/%/%25/g')
+              echo "::error title=$t FAILED::$MSG"
+            else
+              OK=$((OK+1))
+            fi
+          done
           find build -name "*.vst3" -maxdepth 6 -prune -exec cp -R {} out/ \;
+          ls -la out
+          [ $OK -gt 0 ] || exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Linux-build-logs
+          path: logs
       - uses: actions/upload-artifact@v4
         with:
           name: Wezt-Plugins-Linux-VST3
